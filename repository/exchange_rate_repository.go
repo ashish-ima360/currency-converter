@@ -48,8 +48,12 @@ func (r *exchangeRateRepository) GetAll(ctx context.Context) ([]models.ExchangeR
 	return exchangeRates, nil
 }
 
-func (r *exchangeRateRepository) Update(ctx context.Context, id int, rate float64) error {
-	result := r.db.WithContext(ctx).Model(&models.ExchangeRate{}).Where("id = ?", id).Update("rate", rate)
+func (r *exchangeRateRepository) Update(ctx context.Context, exchangeRate *models.ExchangeRate) error {
+	result := r.db.WithContext(ctx).Model(exchangeRate).Where("id = ?", exchangeRate.ID).Updates(map[string]any{
+		"rate":       exchangeRate.Rate,
+		"is_active":  exchangeRate.IsActive,
+		"updated_at": time.Now(),
+	})
 	if result.Error != nil {
 		return result.Error
 	}
@@ -78,4 +82,48 @@ func (r *exchangeRateRepository) GetExchangeRateBetweenCurrencies(ctx context.Co
 		return models.ExchangeRate{}, err
 	}
 	return exchangeRate, nil
+}
+
+func (r *exchangeRateRepository) CreateOrUpdate(
+	ctx context.Context, 
+	fromCurrencyID int,
+	toCurrencyID int,
+	rate float64,
+	) error {
+
+	query := `
+		INSERT INTO exchange_rates (
+			from_currency_id,
+			to_currency_id,
+			rate,
+			is_active,
+			deleted,
+			created_at,
+			updated_at
+		)
+		VALUES (
+			?, ?, ?,
+			TRUE,
+			FALSE,
+			NOW(),
+			NOW()
+		)
+		ON CONFLICT (from_currency_id, to_currency_id)
+		WHERE deleted = FALSE
+		DO UPDATE
+		SET
+			rate       = EXCLUDED.rate,
+			is_active  = TRUE,
+			updated_at = NOW()
+		RETURNING *;
+	`
+
+	err := r.db.WithContext(ctx).
+		Exec(query, fromCurrencyID, toCurrencyID, rate).Error
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

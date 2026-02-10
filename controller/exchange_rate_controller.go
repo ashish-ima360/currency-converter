@@ -6,7 +6,7 @@ import (
 	"currency-converter/models"
 	"currency-converter/utils"
 	"net/http"
-	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -16,8 +16,9 @@ type ExchangeRateService interface {
 	CreateExchangeRate(ctx context.Context, req dto.ExchangeRateRequest) (*models.ExchangeRate, *utils.AppError)
 	GetExchangeRateByID(ctx context.Context, id int) (*models.ExchangeRate, *utils.AppError)
 	GetAllExchangeRates(ctx context.Context) ([]models.ExchangeRate, *utils.AppError)
-	UpdateExchangeRate(ctx context.Context, id int, rate float64) (*models.ExchangeRate, *utils.AppError)
+	UpdateExchangeRate(ctx context.Context, id int, req dto.ExchangeRateUpdateRequest) (*models.ExchangeRate, *utils.AppError)
 	DeleteExchangeRate(ctx context.Context, id int) *utils.AppError
+	SyncExchangeRates(ctx context.Context, code string) *utils.AppError
 }
 
 type ExchangeRateController struct {
@@ -144,23 +145,21 @@ func (h *ExchangeRateController) UpdateExchangeRate(c *gin.Context) {
 		return
 	}
 
-	rate := c.Query("rate")
-	if rate == "" {
+	var req dto.ExchangeRateUpdateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Rate parameter is required",
+			"error": "Invalid request",
+		})
+		return
+	}
+	if req.Rate == nil && req.IsActive == nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "At least one field (rate or is_active) must be provided for update",
 		})
 		return
 	}
 
-	rateFloat, err := strconv.ParseFloat(rate, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid rate value",
-		})
-		return
-	}
-
-	exchangeRate, appErr := h.exchangeRateService.UpdateExchangeRate(ctx, id, rateFloat)
+	exchangeRate, appErr := h.exchangeRateService.UpdateExchangeRate(ctx, id, req)
 	if appErr != nil {
 		c.JSON(appErr.Code, gin.H{
 			"error": appErr.Message,
@@ -201,8 +200,40 @@ func (h *ExchangeRateController) DeleteExchangeRate(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Exchange rate deleted successfully",
+	})
+}
+
+func (h *ExchangeRateController) SyncExchangeRates(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	code, ok := c.Params.Get("code")
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Missing code parameter",
+		})
+		return
+	}
+	if code == "" || len(code) != 3 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid code parameter",
+		})
+		return
+	}
+	code = strings.ToUpper(code)
+
+	appErr := h.exchangeRateService.SyncExchangeRates(ctx, code)
+	if appErr != nil {
+		c.JSON(appErr.Code, gin.H{
+			"error": appErr.Message,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    code,
+		"message": "Exchange rates synced successfully",
 	})
 }

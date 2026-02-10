@@ -33,6 +33,7 @@ func SetupRouter(
 	r.GET("/exchange-rates/:id", exchangeRateController.GetExchangeRateByID)
 	r.PATCH("/exchange-rates/:id", exchangeRateController.UpdateExchangeRate) // ?rate=112
 	r.DELETE("/exchange-rates/:id", exchangeRateController.DeleteExchangeRate)
+	r.POST("/exchange-rates/sync/:code", exchangeRateController.SyncExchangeRates) // /exchange-rates/sync/USD
 
 	r.GET("/convert", conversionController.ConvertCurrency) // ?from=USD&to=INR&amount=100
 

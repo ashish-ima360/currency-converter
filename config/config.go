@@ -14,9 +14,10 @@ type AuthConfig struct {
 }
 
 type Config struct {
-	Port       int
-	DBUrl      string
-	AuthConfig AuthConfig
+	Port            int
+	DBUrl           string
+	ExchangeRateAPI string
+	AuthConfig      AuthConfig
 }
 
 func LoadConfig() (Config, error) {
@@ -37,6 +38,7 @@ func LoadConfig() (Config, error) {
 	cfg := Config{
 		Port:  appPort,
 		DBUrl: getEnv("DB_URL", ""),
+		ExchangeRateAPI: getEnv("EXCHANGE_RATE_API", ""),
 		AuthConfig: AuthConfig{
 			Secret:    getEnv("AUTH_SECRET", ""),
 			ExpiryMin: expiryMin,
@@ -50,6 +52,9 @@ func LoadConfig() (Config, error) {
 
 	if cfg.AuthConfig.Secret == "" {
 		return Config{}, fmt.Errorf("AUTH_SECRET must be set")
+	}
+	if cfg.ExchangeRateAPI == "" {
+		return Config{}, fmt.Errorf("EXCHANGE_RATE_API must be set")
 	}
 
 	return cfg, nil

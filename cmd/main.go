@@ -12,9 +12,11 @@ import (
 	"currency-converter/router"
 	"currency-converter/security"
 	"currency-converter/service"
+	"currency-converter/utils"
 )
-// main function acts as orchestration layer where 
-// we initialize all the dependencies, 
+
+// main function acts as orchestration layer where
+// we initialize all the dependencies,
 // handle all fatal errors and start the server
 func main() {    
 	// Load Config
@@ -44,10 +46,11 @@ func main() {
 
 	// create services
 	tokenService := security.NewTokenService(&cfg.AuthConfig)
+	httpClient := utils.NewHTTPClient()
 
 	userService := service.NewUserService(userRepo, tokenService)
 	currencyService := service.NewCurrencyService(currencyRepo)
-	exchangeRateService := service.NewExchangeRateService(exchangeRateRepo)
+	exchangeRateService := service.NewExchangeRateService(exchangeRateRepo, currencyRepo, httpClient, cfg.ExchangeRateAPI)
 	conversionService := service.NewConversionService(currencyRepo, exchangeRateRepo)
 
 	// create controllers

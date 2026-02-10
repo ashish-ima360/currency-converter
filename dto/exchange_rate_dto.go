@@ -21,3 +21,14 @@ type ExchangeRateResponse struct {
 type ExchangeRateListResponse struct {
 	ExchangeRates []ExchangeRateResponse `json:"exchange_rates"`
 }
+
+type ExchangeRateUpdateRequest struct {
+	Rate     *float64 `json:"rate"`
+	IsActive *bool    `json:"is_active"`
+}
+
+type ExchangeRateExternalResponse struct {
+	Result          string             `json:"result"`
+	BaseCode        string             `json:"base_code"`
+	ConversionRates map[string]float64 `json:"conversion_rates"`
+}
