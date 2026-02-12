@@ -2,7 +2,9 @@ package repository
 
 import (
 	"context"
+	"currency-converter/dto"
 	"currency-converter/models"
+	"currency-converter/utils"
 	"time"
 
 	"gorm.io/gorm"
@@ -46,9 +48,22 @@ func (r *currencyRepository) GetAll(ctx context.Context) ([]models.Currency, err
 	return currencies, nil
 }
 
-func (r *currencyRepository) Update(ctx context.Context, currency *models.Currency) error {
+func (r *currencyRepository) Update(ctx context.Context, id int, input dto.CurrencyUpdateRequest) error {
 
-	return r.db.WithContext(ctx).Save(currency).Error
+	tx := r.db.WithContext(ctx).
+		Model(&models.Currency{}).
+		Where("id = ?", id).
+		Updates(input).Update("updated_at", time.Now())
+
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	if tx.RowsAffected == 0 {
+		return utils.ErrCodeNotFound
+	}
+
+	return nil
 }
 
 func (r *currencyRepository) Delete(ctx context.Context, id int) error {

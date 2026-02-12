@@ -2,8 +2,9 @@ package repository
 
 import (
 	"context"
+	"currency-converter/dto"
 	"currency-converter/models"
-	"errors"
+	"currency-converter/utils"
 	"time"
 
 	"gorm.io/gorm"
@@ -48,17 +49,18 @@ func (r *exchangeRateRepository) GetAll(ctx context.Context) ([]models.ExchangeR
 	return exchangeRates, nil
 }
 
-func (r *exchangeRateRepository) Update(ctx context.Context, exchangeRate *models.ExchangeRate) error {
-	result := r.db.WithContext(ctx).Model(exchangeRate).Where("id = ?", exchangeRate.ID).Updates(map[string]any{
-		"rate":       exchangeRate.Rate,
-		"is_active":  exchangeRate.IsActive,
-		"updated_at": time.Now(),
-	})
-	if result.Error != nil {
-		return result.Error
+func (r *exchangeRateRepository) Update(ctx context.Context, id int, input dto.ExchangeRateUpdateRequest) error {
+
+	tx := r.db.WithContext(ctx).
+		Model(&models.ExchangeRate{}).
+		Where("id = ?", id).
+		Updates(input).Update("updated_at", time.Now())
+
+	if tx.Error != nil {
+		return tx.Error
 	}
-	if result.RowsAffected == 0 {
-		return errors.New("exchange rate not found")
+	if tx.RowsAffected == 0 {
+		return utils.ErrCodeNotFound
 	}
 	return nil
 }
@@ -69,7 +71,7 @@ func (r *exchangeRateRepository) Delete(ctx context.Context, id int) error {
 		Model(&models.ExchangeRate{}).
 		Where("id = ?", id).
 		Updates(map[string]any{
-			"deleted": true, 
+			"deleted":    true,
 			"deleted_at": time.Now(),
 		}).Error
 }
@@ -85,11 +87,11 @@ func (r *exchangeRateRepository) GetExchangeRateBetweenCurrencies(ctx context.Co
 }
 
 func (r *exchangeRateRepository) CreateOrUpdate(
-	ctx context.Context, 
+	ctx context.Context,
 	fromCurrencyID int,
 	toCurrencyID int,
 	rate float64,
-	) error {
+) error {
 
 	query := `
 		INSERT INTO exchange_rates (

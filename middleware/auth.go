@@ -24,7 +24,7 @@ func NewAuthMiddleware(tokenSvc *security.TokenService) *AuthMiddleware {
 }
 
 func (a *AuthMiddleware) Handle() gin.HandlerFunc {
-	return gin.HandlerFunc(func(c *gin.Context) {
+	fn := func(c *gin.Context) {
 
 		token, err := a.extractBearerToken(c)
 		if err != nil {
@@ -55,7 +55,8 @@ func (a *AuthMiddleware) Handle() gin.HandlerFunc {
 		// c.Set(userCtxKey, claims)
 
 		c.Next()
-	})
+	}
+	return gin.HandlerFunc(fn)
 }
 
 func (*AuthMiddleware) extractBearerToken(c *gin.Context) (string, error) {

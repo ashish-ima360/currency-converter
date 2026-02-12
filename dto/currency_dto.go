@@ -3,7 +3,7 @@ package dto
 type CurrencyRequest struct {
 	Code   string `json:"code" binding:"required,len=3"`
 	Name   string `json:"name" binding:"required"`
-	Symbol string `json:"symbol" binding:"required"`
+	Symbol string `json:"symbol" binding:"required len=1"`
 }
 
 type CurrencyResponse struct {
@@ -22,7 +22,8 @@ type CurrencyListResponse struct {
 	Currencies []CurrencyResponse `json:"currencies"`
 }
 
-type CurrencyUpdateRequest struct {
+//  use of map , reseach on it
+type CurrencyUpdateRequest struct {    
 	Name     *string `json:"name"`
 	Symbol   *string `json:"symbol"`
 	IsActive *bool   `json:"is_active"`

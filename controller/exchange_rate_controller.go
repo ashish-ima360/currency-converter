@@ -16,7 +16,7 @@ type ExchangeRateService interface {
 	CreateExchangeRate(ctx context.Context, req dto.ExchangeRateRequest) (*models.ExchangeRate, *utils.AppError)
 	GetExchangeRateByID(ctx context.Context, id int) (*models.ExchangeRate, *utils.AppError)
 	GetAllExchangeRates(ctx context.Context) ([]models.ExchangeRate, *utils.AppError)
-	UpdateExchangeRate(ctx context.Context, id int, req dto.ExchangeRateUpdateRequest) (*models.ExchangeRate, *utils.AppError)
+	UpdateExchangeRate(ctx context.Context, id int, req dto.ExchangeRateUpdateRequest) *utils.AppError
 	DeleteExchangeRate(ctx context.Context, id int) *utils.AppError
 	SyncExchangeRates(ctx context.Context, code string) *utils.AppError
 }
@@ -159,7 +159,7 @@ func (h *ExchangeRateController) UpdateExchangeRate(c *gin.Context) {
 		return
 	}
 
-	exchangeRate, appErr := h.exchangeRateService.UpdateExchangeRate(ctx, id, req)
+	appErr := h.exchangeRateService.UpdateExchangeRate(ctx, id, req)
 	if appErr != nil {
 		c.JSON(appErr.Code, gin.H{
 			"error": appErr.Message,
@@ -167,19 +167,10 @@ func (h *ExchangeRateController) UpdateExchangeRate(c *gin.Context) {
 		return
 	}
 
-	resp := dto.ExchangeRateResponse{
-		ID:             exchangeRate.ID,
-		FromCurrencyID: exchangeRate.FromCurrencyID,
-		ToCurrencyID:   exchangeRate.ToCurrencyID,
-		Rate:           exchangeRate.Rate,
-		IsActive:       exchangeRate.IsActive,
-		Deleted:        exchangeRate.Deleted,
-		DeletedAt:      exchangeRate.DeletedAt.Format(time.RFC3339),
-		CreatedAt:      exchangeRate.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:      exchangeRate.UpdatedAt.Format(time.RFC3339),
-	}
-
-	c.JSON(http.StatusOK, resp)
+	c.JSON(http.StatusOK, gin.H{
+		"id": id,
+		"message": "Exchange rate updated successfully",
+	})
 }
 
 func (h *ExchangeRateController) DeleteExchangeRate(c *gin.Context) {

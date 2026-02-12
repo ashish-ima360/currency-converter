@@ -15,7 +15,7 @@ type CurrencyService interface {
 	CreateCurrency(ctx context.Context, req dto.CurrencyRequest) (*models.Currency, *utils.AppError)
 	GetCurrencyByID(ctx context.Context, id int) (*models.Currency, *utils.AppError)
 	GetAllCurrencies(ctx context.Context) ([]models.Currency, *utils.AppError)
-	UpdateCurrency(ctx context.Context, id int, req dto.CurrencyUpdateRequest) (*models.Currency, *utils.AppError)
+	UpdateCurrency(ctx context.Context, id int, req dto.CurrencyUpdateRequest) *utils.AppError
 	DeleteCurrency(ctx context.Context, id int) *utils.AppError
 }
 
@@ -143,7 +143,7 @@ func (h *CurrencyController) UpdateCurrency(c *gin.Context) {
 		return
 	}
 
-	result, apperr := h.currencyService.UpdateCurrency(ctx, id, req)
+	apperr := h.currencyService.UpdateCurrency(ctx, id, req)
 	if apperr != nil {
 		c.JSON(apperr.Code, gin.H{
 			"error": apperr.Message,
@@ -151,18 +151,10 @@ func (h *CurrencyController) UpdateCurrency(c *gin.Context) {
 		return
 	}
 
-	resp := dto.CurrencyResponse{
-		ID:        result.ID,
-		Code:      result.Code,
-		Name:      result.Name,
-		Symbol:    result.Symbol,
-		IsActive:  result.IsActive,
-		Deleted:   result.Deleted,
-		DeletedAt: result.DeletedAt.Format(time.RFC3339),
-		UpdatedAt: result.UpdatedAt.Format(time.RFC3339),
-		CreatedAt: result.CreatedAt.Format(time.RFC3339),
-	}
-	c.JSON(http.StatusOK, resp)
+	c.JSON(http.StatusOK, gin.H{
+		"id": id,
+		"message": "Currency updated successfully",
+	})
 }
 
 func (h *CurrencyController) DeleteCurrency(c *gin.Context) {

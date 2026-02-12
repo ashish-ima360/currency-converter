@@ -6,6 +6,7 @@ import (
 	"currency-converter/models"
 	"currency-converter/utils"
 	"encoding/json"
+	"errors"
 	"net/http"
 )
 
@@ -13,7 +14,7 @@ type ExchangeRateRepository interface {
 	Create(ctx context.Context, exchangeRate *models.ExchangeRate) (*models.ExchangeRate, error)
 	GetByID(ctx context.Context, id int) (*models.ExchangeRate, error)
 	GetAll(ctx context.Context) ([]models.ExchangeRate, error)
-	Update(ctx context.Context, exchangeRate *models.ExchangeRate) error
+	Update(ctx context.Context, id int, req dto.ExchangeRateUpdateRequest) error
 	Delete(ctx context.Context, id int) error
 	GetExchangeRateBetweenCurrencies(ctx context.Context, fromCurrencyID int, toCurrencyID int) (models.ExchangeRate, error)
 	CreateOrUpdate(ctx context.Context, fromCurrencyID int, toCurrencyID int, rate float64) error
@@ -31,7 +32,7 @@ func NewExchangeRateService(
 	currencyRepo CurrencyRepository,
 	httpClient *http.Client,
 	exchangeRateAPI string,
-	) *exchangeRateService {
+) *exchangeRateService {
 	return &exchangeRateService{
 		repo:            repo,
 		currencyRepo:    currencyRepo,
@@ -71,24 +72,17 @@ func (s *exchangeRateService) GetAllExchangeRates(ctx context.Context) ([]models
 	return exchangeRates, nil
 }
 
-func (s *exchangeRateService) UpdateExchangeRate(ctx context.Context, id int, req dto.ExchangeRateUpdateRequest) (*models.ExchangeRate, *utils.AppError) {
-	exchangeRate, err := s.repo.GetByID(ctx, id)
+func (s *exchangeRateService) UpdateExchangeRate(ctx context.Context, id int, req dto.ExchangeRateUpdateRequest) *utils.AppError {
+
+	err := s.repo.Update(ctx, id, req)
 	if err != nil {
-		return nil, utils.New(http.StatusNotFound, "exchange rate not found")
-	}
-	if req.Rate != nil {
-		exchangeRate.Rate = *req.Rate
-	}
-	if req.IsActive != nil {
-		exchangeRate.IsActive = *req.IsActive
+		if errors.Is(err, utils.ErrCodeNotFound) {
+			return utils.New(http.StatusNotFound, "exchange rate not found")
+		}
+		return utils.New(http.StatusInternalServerError, "error in updating exchange rate")
 	}
 
-	err = s.repo.Update(ctx, exchangeRate)
-	if err != nil {
-		return nil, utils.New(http.StatusInternalServerError, "error in updating exchange rate")
-	}
-
-	return exchangeRate, nil
+	return nil
 }
 
 func (s *exchangeRateService) DeleteExchangeRate(ctx context.Context, id int) *utils.AppError {
